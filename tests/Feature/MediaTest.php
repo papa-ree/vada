@@ -175,6 +175,24 @@ it('mengirim header cache saat menyajikan media', function () {
         ->toContain('max-age=604800');
 });
 
+it('membalas 410 saat berkas sudah tidak ada di disk', function () {
+    $conn = vadaTenant();
+    Storage::fake('vada');
+
+    $user = vadaInboxSession($conn);
+
+    [, $messageId] = vadaMediaMessage($conn, [
+        'media_type' => 'image',
+        'media_path' => 'vada/x/hilang.webp',
+        'media_name' => 'hilang.webp',
+        'media_mime' => 'image/webp',
+        'media_size' => 3,
+        'media_status' => 'ready',
+    ]);
+
+    $this->actingAs($user)->get(route('vada.media', $messageId))->assertStatus(410);
+});
+
 it('menerima JPEG bernama .jfif dari gateway sebagai gambar', function () {
     expect(Media::allows('image', '1795142457-d739f2fc.jfif'))->toBeTrue()
         ->and(Media::mimeFor('gambar.jfif'))->toBe('image/jpeg');
