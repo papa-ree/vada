@@ -10,6 +10,7 @@ use Bale\Vada\Commands\PublishConfigVada;
 use Bale\Vada\Commands\PublishMigrationsVada;
 use Bale\Vada\Commands\RepairVadaEchoes;
 use Bale\Vada\Commands\SyncVadaHistory;
+use Bale\Vada\Commands\UnassignVada;
 use Bale\Vada\Listeners\StoreIncomingVadaMessage;
 use Bale\Vada\Listeners\StoreOutgoingVadaMessage;
 use Bale\Vada\Listeners\UpdateVadaMessageStatus;
@@ -44,6 +45,7 @@ class VadaServiceProvider extends ServiceProvider
             PublishMigrationsVada::class,
             RepairVadaEchoes::class,
             SyncVadaHistory::class,
+            UnassignVada::class,
         ]);
     }
 
