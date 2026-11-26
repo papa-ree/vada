@@ -100,3 +100,24 @@ it('mengosongkan unread saat akun membaca dari perangkat lain', function () {
 
     expect(DB::connection($conn)->table('vada_conversations')->value('unread_count'))->toBe(0);
 });
+
+it('mengosongkan unread saat ack read menunjuk pesan masuk', function () {
+    $conn = vadaTenant();
+    vadaChannel();
+    vadaReceiptRow($conn, ['direction' => 'in', 'status' => 'received', 'wara_message_id' => 'msg-in-1'], unread: 2);
+
+    (new UpdateVadaMessageStatus)->handle(vadaAck(['msg-in-1'], 'read'));
+
+    expect(DB::connection($conn)->table('vada_conversations')->value('unread_count'))->toBe(0)
+        ->and(DB::connection($conn)->table('vada_messages')->value('status'))->toBe('received');
+});
+
+it('tidak mengosongkan unread saat kontak membaca pesan keluar', function () {
+    $conn = vadaTenant();
+    vadaChannel();
+    vadaReceiptRow($conn, unread: 3);
+
+    (new UpdateVadaMessageStatus)->handle(vadaAck(['msg-1'], 'read'));
+
+    expect(DB::connection($conn)->table('vada_conversations')->value('unread_count'))->toBe(3);
+});

@@ -48,6 +48,19 @@ class UpdateVadaMessageStatus
                 return;
             }
 
+            // Read/played yang menunjuk pesan MASUK hanya bisa datang dari akun
+            // ini sendiri: kontak tidak pernah membaca pesan yang ia kirim.
+            // GOWA mengirim `read`, bukan `read-self`, saat laporan dibaca aktif.
+            if (
+                in_array($event->receiptType, ['read', 'played'], true)
+                && VadaMessage::query()
+                    ->where('direction', VadaMessage::DIRECTION_IN)
+                    ->whereIn('wara_message_id', $event->messageIds)
+                    ->exists()
+            ) {
+                $this->clearUnread($event->phone);
+            }
+
             $status = match ($event->receiptType) {
                 'delivered' => VadaMessage::STATUS_DELIVERED,
                 'read', 'played' => VadaMessage::STATUS_READ,
