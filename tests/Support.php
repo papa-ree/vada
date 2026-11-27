@@ -59,6 +59,8 @@ function vadaTenant(): string
         $table->text('error')->nullable();
         $table->uuid('sent_by')->nullable();
         $table->timestamps();
+
+        $table->unique(['conversation_id', 'wara_message_id']);
     });
 
     // `id` ada di `$guarded`, jadi tidak bisa lewat create().

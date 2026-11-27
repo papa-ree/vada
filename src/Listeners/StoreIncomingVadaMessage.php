@@ -81,22 +81,32 @@ class StoreIncomingVadaMessage
 
                 $type = $outgoing ? null : $event->mediaType();
 
-                $message = VadaMessage::create([
-                    'conversation_id' => $conversation->id,
-                    'direction' => $outgoing ? VadaMessage::DIRECTION_OUT : VadaMessage::DIRECTION_IN,
-                    'reply_to_id' => $replyToId,
-                    'wara_message_id' => $event->messageId,
-                    'body' => (string) $event->body,
-                    'status' => $outgoing ? VadaMessage::STATUS_SENT : VadaMessage::STATUS_RECEIVED,
-                    'media_type' => $type,
-                    'media_name' => $outgoing ? null : ($event->media['filename'] ?? null),
-                    'media_status' => $type === null ? null : match (true) {
-                        // Video & stiker tetap tampil sebagai baris, bukan hilang.
-                        ! in_array($type, ['image', 'audio', 'document'], true) => VadaMessage::MEDIA_FAILED,
-                        $event->messageId === null => VadaMessage::MEDIA_FAILED,
-                        default => VadaMessage::MEDIA_PENDING,
-                    },
-                ]);
+                // createOrFirst menangani replay yang bersamaan: bila request lain
+                // menang lebih dulu, barisnya dipakai ulang tanpa efek samping.
+                $message = VadaMessage::query()->createOrFirst(
+                    [
+                        'conversation_id' => $conversation->id,
+                        'wara_message_id' => $event->messageId,
+                    ],
+                    [
+                        'direction' => $outgoing ? VadaMessage::DIRECTION_OUT : VadaMessage::DIRECTION_IN,
+                        'reply_to_id' => $replyToId,
+                        'body' => (string) $event->body,
+                        'status' => $outgoing ? VadaMessage::STATUS_SENT : VadaMessage::STATUS_RECEIVED,
+                        'media_type' => $type,
+                        'media_name' => $outgoing ? null : ($event->media['filename'] ?? null),
+                        'media_status' => $type === null ? null : match (true) {
+                            // Video & stiker tetap tampil sebagai baris, bukan hilang.
+                            ! in_array($type, ['image', 'audio', 'document'], true) => VadaMessage::MEDIA_FAILED,
+                            $event->messageId === null => VadaMessage::MEDIA_FAILED,
+                            default => VadaMessage::MEDIA_PENDING,
+                        },
+                    ],
+                );
+
+                if (! $message->wasRecentlyCreated) {
+                    return;
+                }
 
                 $conversation->forceFill([
                     'last_message_at' => now(),

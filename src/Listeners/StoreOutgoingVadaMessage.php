@@ -73,13 +73,23 @@ class StoreOutgoingVadaMessage
                     return;
                 }
 
-                VadaMessage::create([
-                    'conversation_id' => $conversation->id,
-                    'direction' => VadaMessage::DIRECTION_OUT,
-                    'wara_message_id' => $event->messageId,
-                    'body' => $body,
-                    'status' => VadaMessage::STATUS_SENT,
-                ]);
+                // Event yang dipancarkan ulang tidak boleh menaikkan last_message_at
+                // dua kali atau memicu duplikasi saat dua request bertabrakan.
+                $message = VadaMessage::query()->createOrFirst(
+                    [
+                        'conversation_id' => $conversation->id,
+                        'wara_message_id' => $event->messageId,
+                    ],
+                    [
+                        'direction' => VadaMessage::DIRECTION_OUT,
+                        'body' => $body,
+                        'status' => VadaMessage::STATUS_SENT,
+                    ],
+                );
+
+                if (! $message->wasRecentlyCreated) {
+                    return;
+                }
 
                 $conversation->forceFill([
                     'last_message_at' => now(),
